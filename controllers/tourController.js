@@ -2,7 +2,33 @@ const Tour = require('./../models/tourModel');
 
 const getAllTours = async (req, res) => {
   try {
-    const tours = await Tour.find();
+    // filtering
+    const queryObject = { ...req.query };
+    const excludedFields = ['page', 'sort', 'limit', 'fields'];
+    excludedFields.forEach(el => delete queryObject[el]);
+
+    //Advanced Filtering
+    let queryStr = JSON.stringify(queryObject);
+    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
+
+    let query = Tour.find(JSON.parse(queryStr));
+
+    //sort
+    if (req.query.sort) {
+      const sortBy = req.query.sort.split(',').join(' ');
+      query = query.sort(sortBy);
+    } else {
+      query = query.sort('-createdAt');
+    }
+    //Limit (Sending only specific fields of the data set)
+    if (req.query.fields) {
+      const fields = req.query.fields.split(',').join(' ');
+      query = query.select(fields);
+    } else {
+      query = query.select('-__v');
+    }
+
+    const tours = await query;
     res.status(200).json({
       status: 'success',
       results: tours.length,
@@ -13,7 +39,7 @@ const getAllTours = async (req, res) => {
   } catch (err) {
     res.status(400).json({
       status: 'fail',
-      message: 'fail to get tours'
+      message: err
     });
   }
 };
@@ -45,7 +71,7 @@ const createTour = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(400).json({ status: 'fail', message: 'Invalid data' });
+    res.status(400).json({ status: 'fail', message: error });
   }
 };
 
