@@ -20,9 +20,7 @@ const getAllTours = async (req, res) => {
     res.status(200).json({
       status: 'success',
       results: tours.length,
-      data: {
-        tours
-      }
+      data: { tours }
     });
   } catch (err) {
     res.status(404).json({
@@ -89,6 +87,86 @@ const deleteTour = async (req, res) => {
     res.status(400).json({ status: 'fail', message: error });
   }
 };
+const getTourStatus = async (req, res) => {
+  try {
+    const status = await Tour.aggregate([
+      { $match: { ratingsAverage: { $gt: 4.5 } } },
+      {
+        $group: {
+          _id: { $toUpper: '$difficulty' },
+          numTours: { $sum: 1 },
+          numRating: { $sum: '$ratingsQuantity' },
+          avgRating: { $avg: '$ratingsAverage' },
+          avgPrice: { $avg: '$price' },
+          minPrice: { $min: '$price' },
+          maxPrice: { $max: '$price' }
+        }
+      },
+      {
+        $sort: { avgPrice: 1 }
+      }
+    ]);
+    res.status(200).json({
+      status: 'success',
+
+      data: {
+        status
+      }
+    });
+  } catch (err) {
+    res.status(404).json({
+      status: 'fail',
+      message: err.message
+    });
+  }
+};
+const getMonthlyPlan = async (req, res) => {
+  try {
+    const year = req.params.year * 1;
+    const plan = await Tour.aggregate([
+      { $unwind: '$startDates' },
+      {
+        $match: {
+          startDates: {
+            $gte: new Date(`${year}-01-01`),
+            $lte: new Date(`${year}-12-31`)
+          }
+        }
+      },
+      {
+        $group: {
+          _id: { $month: '$startDates' },
+          numTourStarts: { $sum: 1 },
+          tours: { $push: '$name' }
+        }
+      },
+      {
+        $sort: { numTourStarts: -1 }
+      },
+      {
+        $addFields: { month: '$_ id' }
+      },
+      {
+        $project: { _id: 0 }
+      },
+      {
+        $limit: 12
+      }
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        plan
+      }
+    });
+  } catch (err) {
+    res.status(404).json({
+      status: 'fail',
+      message: err.message
+    });
+  }
+};
 
 module.exports = {
   getAllTours,
@@ -96,5 +174,7 @@ module.exports = {
   createTour,
   updateTour,
   deleteTour,
-  aliasTopTours
+  aliasTopTours,
+  getTourStatus,
+  getMonthlyPlan
 };
