@@ -50,3 +50,22 @@ exports.login = catchAsync(async (req, res, next) => {
     token
   });
 });
+
+//Protecting resources middleware
+exports.protect = catchAsync(async (req, res, next) => {
+  let token;
+  //1 Getting token and check of its there
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startWith('Bearer')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+  if (!token) {
+    console.log('no token');
+  }
+  //2 Verification token
+  //3 Check if user still exist
+  //4 Check if user change the password after the token was issued
+  next();
+});
