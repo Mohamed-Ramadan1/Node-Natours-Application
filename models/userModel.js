@@ -15,7 +15,8 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'User should have a string'],
-    minlength: 8
+    minlength: 8,
+    select: false
   },
   passwordConfirm: {
     type: String,
@@ -29,16 +30,22 @@ const userSchema = new mongoose.Schema({
   }
 });
 
+//Before saving the password to the database must be increpted
 userSchema.pre('save', async function(next) {
-  //If the the password not modifayed nothing will happend
+  //If the the password not modifayed nothing will happen
   if (!this.isModified('password')) return next();
-
   //encript the password
   this.password = await bcrypt.hash(this.password, 12);
-
   //deleting the confirmaing password by making it undefined
   this.passwordConfirm = undefined;
 });
+
+userSchema.methods.correctPassword = async function(
+  candidatePassword,
+  userPassword
+) {
+  return await bcrypt.compare(candidatePassword, userPassword);
+};
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;
