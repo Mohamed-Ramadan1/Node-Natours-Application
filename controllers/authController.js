@@ -80,6 +80,39 @@ exports.protect = catchAsync(async (req, res, next) => {
       new AppError('User recently changed password pleas login again', 401)
     );
   }
+  //passing the user to req to access it in the restrict middleware
   req.user = currentUser;
   next();
 });
+
+//Authorization
+exports.restrictTo = (...roles) => {
+  return (req, res, next) => {
+    //Check if the user have the attributes role
+    if (!roles.includes(req.user.role)) {
+      return next(
+        new AppError('You do not have permission to perform this action ', 403)
+      );
+    }
+    next();
+  };
+};
+
+exports.forgotPassword = catchAsync(async (req, res, next) => {
+  //Get user based on email
+  const user = await User.findOne({ email: req.body.email });
+  console.log(req.body.email);
+
+  console.log(user);
+  if (!user) {
+    return next(new AppError('There is no user with email address.', 404));
+  }
+
+  //Generate random reset token
+  const resetToken = user.createPasswordResetToken();
+
+  await user.save({ validateBeforeSave: false });
+  //send token to user emil
+});
+
+exports.resetPassword = (req, res, next) => {};
