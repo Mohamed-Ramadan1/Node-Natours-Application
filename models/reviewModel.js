@@ -24,7 +24,7 @@ const reviewSchema = new mongoose.Schema(
     ],
     user: [
       {
-        type: mongoose.schema.ObjectId,
+        type: mongoose.Schema.ObjectId,
         ref: 'User',
         required: [true, 'Review must belong to a user']
       }
